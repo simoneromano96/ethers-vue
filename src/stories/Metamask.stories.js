@@ -1,4 +1,4 @@
-import Metamask from './Metamask.vue';
+import Metamask from '../components/metamask/Metamask.vue';
 
 // More on default export: https://storybook.js.org/docs/vue/writing-stories/introduction#default-export
 export default {

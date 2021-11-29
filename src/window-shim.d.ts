@@ -1,4 +1,4 @@
-import type { ExternalProvider } from "@ethersproject/providers";
+import { ExternalProvider } from "@ethersproject/providers";
 
 interface Window {
   ethereum?: ExternalProvider;

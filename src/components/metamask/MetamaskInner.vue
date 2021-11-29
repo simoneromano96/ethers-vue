@@ -1,15 +1,14 @@
 <template>
   <h1>Inner</h1>
-  <button @click="getBlockNumber"> Get last block number [Current: {{blockNumber}}] </button>
-  <button @click="getAddress"> Get account address [Current: {{address}}] </button>
-  <button @click="getBalance"> Get account balance [Current: {{balance}}] </button>
-  
+  <button @click="getBlockNumber">Get last block number [Current: {{ blockNumber }}]</button>
+  <button @click="getAddress">Get account address [Current: {{ address }}]</button>
+  <button @click="getBalance">Get account balance [Current: {{ balance }}]</button>
 </template>
 
 <script setup lang="ts">
-import {ref} from "vue";
+import { ref } from "vue";
 
-import { initMetamask } from '..';
+import { initMetamask } from "../..";
 
 const { provider, signer } = await initMetamask();
 console.log("🚀 ~ file: MetamaskInner.vue ~ line 11 ~ provider, signer", provider, signer)
