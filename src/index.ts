@@ -1,11 +1,11 @@
 export const add = (a: number, b: number) => a + b;
 
 export const initMetamask = async () => {
-  const ethers = await import("ethers");
+  const { Web3Provider } = await import("@ethersproject/providers");
   if (!window.ethereum) {
     throw new Error("Ethereum missing");
   }
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  const provider = new Web3Provider(window.ethereum);
   const signer = provider.getSigner();
   return { provider, signer };
 };

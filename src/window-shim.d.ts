@@ -1,5 +1,5 @@
-import { providers } from "ethers";
+import type { ExternalProvider } from "@ethersproject/providers";
 
 interface Window {
-  ethereum?: providers.ExternalProvider;
+  ethereum?: ExternalProvider;
 }
