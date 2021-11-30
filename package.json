@@ -1,7 +1,7 @@
 {
-  "name": "ethers-vue",
+  "name": "web3-core",
   "version": "0.0.0",
-  "description": "integration between ethers and vue",
+  "description": "Helper library to interact with any web3 provider",
   "source": "lib/index.ts",
   "main": "dist/cjs.js",
   "module": "dist/esm.js",
