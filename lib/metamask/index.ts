@@ -1,5 +1,9 @@
 import type { ExternalProvider } from "@ethersproject/providers"
 
+/**
+ * Creates a metamask based provider
+ * @returns
+ */
 export const initMetamask = async () => {
   const { Web3Provider } = await import("@ethersproject/providers")
   const ethereum = window?.ethereum

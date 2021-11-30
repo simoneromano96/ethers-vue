@@ -10,7 +10,8 @@
   "scripts": {
     "watch": "parcel watch",
     "build": "parcel build",
-    "lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix lib"
+    "lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix lib",
+    "docs": "typedoc --out docs lib/index.ts"
   },
   "repository": {
     "type": "git",
@@ -34,6 +35,7 @@
     "eslint-plugin-prettier": "^4.0.0",
     "parcel": "^2.0.1",
     "prettier": "2.5.0",
+    "typedoc": "^0.22.10",
     "typescript": "^4.5.2"
   },
   "dependencies": {
@@ -41,7 +43,5 @@
     "@ethersproject/providers": "^5.5.0",
     "@ethersproject/units": "^5.5.0",
     "ethers": "^5.5.1"
-  },
-  "peerDependencies": {
   }
 }
