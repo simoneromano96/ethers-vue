@@ -2,9 +2,7 @@
   "name": "ethers-vue",
   "version": "0.0.0",
   "description": "integration between ethers and vue",
-  "source": [
-    "src/lib/index.ts"
-  ],
+  "source": "lib/index.ts",
   "main": "dist/cjs.js",
   "module": "dist/esm.js",
   "types": "dist/types.d.ts",
