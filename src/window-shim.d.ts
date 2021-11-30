@@ -1,5 +1,7 @@
-import { ExternalProvider } from "@ethersproject/providers";
+import type { MetaMaskInpageProvider } from "@metamask/providers";
 
-interface Window {
-  ethereum?: ExternalProvider;
+declare global {
+  interface Window {
+      ethereum: MetaMaskInpageProvider;
+  }
 }

@@ -3,16 +3,14 @@
   <button @click="getBlockNumber">Get last block number [Current: {{ blockNumber }}]</button>
   <button @click="getAddress">Get account address [Current: {{ address }}]</button>
   <button @click="getBalance">Get account balance [Current: {{ balance }}]</button>
+  <button @click="signMessage">Sign message [Current: {{ signedMessage }}]</button>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue"
+import { AvailableProviders, initProvider } from "../../lib"
 
-import { formatEther } from "@ethersproject/units"
-
-import { initMetamask } from "../.."
-
-const { provider, signer } = await initMetamask()
+const { provider, signer } = await initProvider(AvailableProviders.Metamask)
 console.log("🚀 ~ file: MetamaskInner.vue ~ line 11 ~ provider, signer", provider, signer)
 
 // const accounts = await provider.send("eth_accounts", []);
@@ -34,6 +32,12 @@ const getAddress = async () => {
 const balance = ref("")
 const getBalance = async () => {
   const lastBalance = await signer.getBalance()
+  const { formatEther } = await import("@ethersproject/units")
   balance.value = formatEther(lastBalance)
+}
+
+const signedMessage = ref("")
+const signMessage = async () => {
+  signedMessage.value = await signer.signMessage("hello world!")
 }
 </script>
