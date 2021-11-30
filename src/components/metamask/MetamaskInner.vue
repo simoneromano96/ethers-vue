@@ -6,32 +6,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref } from "vue"
 
-import { initMetamask } from "../..";
+import { formatEther } from "@ethersproject/units"
 
-const { provider, signer } = await initMetamask();
+import { initMetamask } from "../.."
+
+const { provider, signer } = await initMetamask()
 console.log("🚀 ~ file: MetamaskInner.vue ~ line 11 ~ provider, signer", provider, signer)
 
 // const accounts = await provider.send("eth_accounts", []);
-const accounts = await provider.send("eth_requestAccounts", []);
+const accounts = await provider.send("eth_requestAccounts", [])
 console.log("🚀 ~ file: MetamaskInner.vue ~ line 18 ~ accounts", accounts)
 
 const blockNumber = ref(0)
 const getBlockNumber = async () => {
-  const lastBlockNumber = await provider.getBlockNumber();
-  blockNumber.value = lastBlockNumber;
+  const lastBlockNumber = await provider.getBlockNumber()
+  blockNumber.value = lastBlockNumber
 }
 
-const address = ref("");
+const address = ref("")
 const getAddress = async () => {
-  const currentAddress = await signer.getAddress();
-  address.value = currentAddress;
+  const currentAddress = await signer.getAddress()
+  address.value = currentAddress
 }
 
-const balance = ref(0)
+const balance = ref("")
 const getBalance = async () => {
-  const lastBalance = await signer.getBalance();
-  balance.value = lastBalance;
+  const lastBalance = await signer.getBalance()
+  balance.value = formatEther(lastBalance)
 }
 </script>
