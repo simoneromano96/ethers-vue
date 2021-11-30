@@ -18,19 +18,19 @@ export const initProvider = async (provider: AvailableProviders) => {
     case AvailableProviders.Metamask: {
       const { initMetamask } = await import("./metamask")
       const { provider, signer, ethereum } = await initMetamask()
-      ethereum.on("connect", (connectInfo) => {
+      ethereum.on("connect", (connectInfo: any) => {
         console.log("🚀 ~ file: index.ts ~ line 27 ~ ethereum.on ~ connectInfo", connectInfo)
       })
-      ethereum.on("disconnect", (error) => {
+      ethereum.on("disconnect", (error: any) => {
         console.log("🚀 ~ file: index.ts ~ line 30 ~ ethereum.on ~ error", error)
       })
-      ethereum.on("accountsChanged", (accounts) => {
+      ethereum.on("accountsChanged", (accounts: any) => {
         console.log("🚀 ~ file: index.ts ~ line 22 ~ ethereum.on ~ accounts", accounts)
       })
-      ethereum.on("chainChanged", (chainId) => {
+      ethereum.on("chainChanged", (chainId: any) => {
         console.log("🚀 ~ file: index.ts ~ line 24 ~ ethereum.on ~ chainId", chainId)
       })
-      ethereum.on("message", (message) => {
+      ethereum.on("message", (message: any) => {
         console.log("🚀 ~ file: index.ts ~ line 35 ~ ethereum.on ~ message", message)
       })
       return { signer, provider }

@@ -7,7 +7,7 @@ export const initMetamask = async () => {
     throw new Error("Ethereum missing")
   }
   const provider = new Web3Provider(ethereum as unknown as ExternalProvider)
-  
+
   const signer = provider.getSigner()
   return { provider, signer, ethereum }
 }
