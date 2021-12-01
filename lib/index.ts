@@ -108,16 +108,24 @@ export class Connector {
     return this.#provider
   }
 
+  private requireEthereumInitialized() {
+    if (!this.#ethereum) {
+      throw new Error("Ethereum provider has not been initialized, call initProvider() first")
+    }
+    return this.#ethereum
+  }
+
   /**
    * Requests the provider to access the user's wallet, will throw if the provider has not been initialized.
    */
   activate = async () => {
     const provider = this.requireProviderInitialized()
     switch (this.providerType) {
-      case ProviderTypes.Metamask:
-        await provider.send("eth_requestAccounts", [])
+      case ProviderTypes.Metamask: {
+        const accounts = await provider.send("eth_requestAccounts", [])
+        this.eventEmitter.emit(ConnectorEvents.AccountsChanged, accounts)
         break
-
+      }
       default:
         break
     }
