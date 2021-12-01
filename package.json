@@ -42,6 +42,7 @@
     "@ethersproject/hardware-wallets": "^5.5.0",
     "@ethersproject/providers": "^5.5.0",
     "@ethersproject/units": "^5.5.0",
+    "emittery": "^0.10.0",
     "ethers": "^5.5.1"
   }
 }

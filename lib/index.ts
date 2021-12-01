@@ -1,3 +1,5 @@
+import Emittery from "emittery"
+
 /**
  * Supported provider types.
  */
@@ -20,9 +22,12 @@ export enum ConnectorEvents {
 /**
  * A generic Connector class used to interact with the user's wallet
  */
-export class Connector extends EventTarget {
+export class Connector {
+  #emitter: Emittery<{ [ConnectorEvents.AccountsChanged]: string[] }>
   constructor(private providerType: ProviderTypes) {
-    super()
+    this.#emitter = new Emittery<{
+      [ConnectorEvents.AccountsChanged]: string[]
+    }>()
   }
 
   /**
@@ -31,8 +36,8 @@ export class Connector extends EventTarget {
    * @param detail Additional data to use in the emitted event.
    */
   protected emit = (type: ConnectorEvents, detail: any) => {
-    const event = new CustomEvent(type, { detail })
-    this.dispatchEvent(event)
+    // const event = new CustomEvent(type, { detail })
+    // this.dispatchEvent(event)
   }
 
   /**
@@ -43,8 +48,8 @@ export class Connector extends EventTarget {
    * @param callback A callback function called when the event is emitted.
    * @param options Additional options to pass to EventTarget.addEventListener.
    */
-  addEventListener = (type: ConnectorEvents, callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
-    super.addEventListener(type, callback, options)
+  addEventListener = (type: ConnectorEvents, callback: EventListener<any>, options?: boolean | AddEventListenerOptions) => {
+    // super.addEventListener(type, callback, options)
   }
 
   /**
@@ -55,8 +60,8 @@ export class Connector extends EventTarget {
    * @param callback A callback function called when the event is emitted.
    * @param options Additional options to pass to EventTarget.removeEventListener.
    */
-  removeEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: boolean | EventListenerOptions) {
-    super.removeEventListener(type, callback, options)
+  removeEventListener = (type: string, callback: EventListener<any> | null, options?: boolean | EventListenerOptions) => {
+    // super.removeEventListener(type, callback, options)
   }
 
   /**
@@ -76,7 +81,8 @@ export class Connector extends EventTarget {
             this.emit(ConnectorEvents.Disconnect, error)
           })
           ethereum.on("accountsChanged", (accounts: any) => {
-            this.emit(ConnectorEvents.AccountsChanged, accounts)
+            this.#emitter.emit(ConnectorEvents.AccountsChanged, accounts)
+            // this.emit(ConnectorEvents.AccountsChanged, accounts)
           })
           ethereum.on("chainChanged", (chainId: any) => {
             this.emit(ConnectorEvents.ChainChanged, chainId)
@@ -92,6 +98,10 @@ export class Connector extends EventTarget {
         return { signer, provider }
       }
     }
+  }
+
+  activate = async () => {
+    console.log("todo")
   }
 }
 
