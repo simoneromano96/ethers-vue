@@ -1,3 +1,5 @@
+import type { JsonRpcSigner, Web3Provider } from "@ethersproject/providers"
+import type { MetaMaskInpageProvider } from "@metamask/providers"
 import Emittery from "emittery"
 
 /**
@@ -6,6 +8,21 @@ import Emittery from "emittery"
 export enum ProviderTypes {
   Metamask = "Metamask",
   Ledger = "Ledger",
+}
+
+/**
+ * Hexprefixed chainId, emitted when the provider has connected
+ */
+export interface ConnectInfo {
+  chainId: string
+}
+
+/**
+ * Some kind of message sent from the provider
+ */
+export interface ProviderMessage {
+  type: string
+  data: unknown
 }
 
 /**
@@ -20,48 +37,30 @@ export enum ConnectorEvents {
 }
 
 /**
+ * List of all events that are emitted by the Connector's eventEmitter.
+ */
+export interface EmittedEvents {
+  [ConnectorEvents.AccountsChanged]: string[]
+  [ConnectorEvents.Connect]: ConnectInfo
+  [ConnectorEvents.Disconnect]: unknown
+  [ConnectorEvents.ChainChanged]: string
+  [ConnectorEvents.Message]: ProviderMessage
+}
+
+/**
  * A generic Connector class used to interact with the user's wallet
  */
 export class Connector {
-  #emitter: Emittery<{ [ConnectorEvents.AccountsChanged]: string[] }>
+  /**
+   * The event emitter
+   */
+  public eventEmitter: Emittery<EmittedEvents>
+  #provider?: Web3Provider
+  #signer?: JsonRpcSigner
+  #ethereum?: MetaMaskInpageProvider
+
   constructor(private providerType: ProviderTypes) {
-    this.#emitter = new Emittery<{
-      [ConnectorEvents.AccountsChanged]: string[]
-    }>()
-  }
-
-  /**
-   * Dispatches an event from the Connector
-   * @param type A supported event type to emit.
-   * @param detail Additional data to use in the emitted event.
-   */
-  protected emit = (type: ConnectorEvents, detail: any) => {
-    // const event = new CustomEvent(type, { detail })
-    // this.dispatchEvent(event)
-  }
-
-  /**
-   * Wraps the EventTarget event listener.
-   *
-   * Refer to EventTarget.addEventListener documentation.
-   * @param type A supported event type to listen to.
-   * @param callback A callback function called when the event is emitted.
-   * @param options Additional options to pass to EventTarget.addEventListener.
-   */
-  addEventListener = (type: ConnectorEvents, callback: EventListener<any>, options?: boolean | AddEventListenerOptions) => {
-    // super.addEventListener(type, callback, options)
-  }
-
-  /**
-   * Wraps the EventTarget event listener.
-   *
-   * Refer to EventTarget.removeEventListener documentation.
-   * @param type A supported event type to remove.
-   * @param callback A callback function called when the event is emitted.
-   * @param options Additional options to pass to EventTarget.removeEventListener.
-   */
-  removeEventListener = (type: string, callback: EventListener<any> | null, options?: boolean | EventListenerOptions) => {
-    // super.removeEventListener(type, callback, options)
+    this.eventEmitter = new Emittery<EmittedEvents>()
   }
 
   /**
@@ -73,22 +72,24 @@ export class Connector {
       case ProviderTypes.Metamask: {
         const { initMetamask } = await import("./metamask")
         const { provider, signer, ethereum } = await initMetamask()
+        this.#provider = provider
+        this.#signer = signer
+        this.#ethereum = ethereum
         if (ethereum.on) {
           ethereum.on("connect", (connectInfo: any) => {
-            this.emit(ConnectorEvents.Connect, connectInfo)
+            this.eventEmitter.emit(ConnectorEvents.Connect, connectInfo)
           })
           ethereum.on("disconnect", (error: any) => {
-            this.emit(ConnectorEvents.Disconnect, error)
+            this.eventEmitter.emit(ConnectorEvents.Disconnect, error)
           })
           ethereum.on("accountsChanged", (accounts: any) => {
-            this.#emitter.emit(ConnectorEvents.AccountsChanged, accounts)
-            // this.emit(ConnectorEvents.AccountsChanged, accounts)
+            this.eventEmitter.emit(ConnectorEvents.AccountsChanged, accounts)
           })
           ethereum.on("chainChanged", (chainId: any) => {
-            this.emit(ConnectorEvents.ChainChanged, chainId)
+            this.eventEmitter.emit(ConnectorEvents.ChainChanged, chainId)
           })
           ethereum.on("message", (message: any) => {
-            this.emit(ConnectorEvents.Message, message)
+            this.eventEmitter.emit(ConnectorEvents.Message, message)
           })
         }
         return { signer, provider }
@@ -100,8 +101,33 @@ export class Connector {
     }
   }
 
+  private requireProviderInitialized() {
+    if (!this.#provider) {
+      throw new Error("Provider has not been initialized, call initProvider() first")
+    }
+    return this.#provider
+  }
+
+  /**
+   * Requests the provider to access the user's wallet, will throw if the provider has not been initialized.
+   */
   activate = async () => {
-    console.log("todo")
+    const provider = this.requireProviderInitialized()
+    switch (this.providerType) {
+      case ProviderTypes.Metamask:
+        await provider.send("eth_requestAccounts", [])
+        break
+
+      default:
+        break
+    }
+  }
+
+  /**
+   * TODO: Remove all the event listeners
+   */
+  dispose = () => {
+    throw new Error("Unimplemented!")
   }
 }
 
