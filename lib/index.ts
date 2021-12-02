@@ -1,4 +1,4 @@
-import type { JsonRpcSigner, Web3Provider } from "@ethersproject/providers"
+import type { JsonRpcSigner, Network, Web3Provider } from "@ethersproject/providers"
 import type { MetaMaskInpageProvider } from "@metamask/providers"
 import Emittery from "emittery"
 
@@ -8,6 +8,7 @@ import Emittery from "emittery"
 export enum ProviderTypes {
   Metamask = "Metamask",
   Ledger = "Ledger",
+  WalletConnect = "WalletConnect",
 }
 
 /**
@@ -33,6 +34,7 @@ export enum ConnectorEvents {
   Connect = "Connect",
   Disconnect = "Disconnect",
   ChainChanged = "ChainChanged",
+  NetworkChanged = "NetworkChanged",
   Message = "Message",
 }
 
@@ -45,6 +47,7 @@ export interface EmittedEvents {
   [ConnectorEvents.Disconnect]: unknown
   [ConnectorEvents.ChainChanged]: string
   [ConnectorEvents.Message]: ProviderMessage
+  [ConnectorEvents.NetworkChanged]: Network
 }
 
 /**
@@ -55,25 +58,72 @@ export class Connector {
    * The event emitter
    */
   public eventEmitter: Emittery<EmittedEvents>
-  #provider?: Web3Provider
-  #signer?: JsonRpcSigner
+  /**
+   * The web3 provider, should this be private?
+   */
+  public provider?: Web3Provider
+  /**
+   * The transaction signer, should this be private?
+   */
+  public signer?: JsonRpcSigner
   #ethereum?: MetaMaskInpageProvider
 
   constructor(private providerType: ProviderTypes) {
     this.eventEmitter = new Emittery<EmittedEvents>()
   }
 
+  private requireProviderInitialized() {
+    if (!this.provider) {
+      throw new Error("Provider has not been initialized, call initProvider() first")
+    }
+    return this.provider
+  }
+
+  private requireEthereumInitialized() {
+    if (!this.#ethereum) {
+      throw new Error("Ethereum provider has not been initialized, call initProvider() first")
+    }
+    return this.#ethereum
+  }
+
+  private addEventListenersToProvider() {
+    const provider = this.requireProviderInitialized()
+    // Subscribe to network change
+    provider.on("network", (newNetwork: Network) => {
+      this.eventEmitter.emit(ConnectorEvents.NetworkChanged, newNetwork)
+    })
+    // Subscribe to accounts change
+    provider.on("accountsChanged", (accounts: any) => {
+      console.log("accountsChanged", accounts)
+    })
+    // Subscribe to chainId change
+    provider.on("chainChanged", (chainId: number) => {
+      console.log(chainId)
+    })
+    // Subscribe to session connection
+    provider.on("connect", () => {
+      console.log("connect")
+    })
+    // Subscribe to session disconnection
+    provider.on("disconnect", (code: number, reason: string) => {
+      console.log(code, reason)
+    })
+  }
+
   /**
    * Initialize the specified provider
+   *
+   * Maybe we should pass the providerType here?
    * @returns
    */
   initProvider = async () => {
+    console.log("initProvider")
     switch (this.providerType) {
       case ProviderTypes.Metamask: {
         const { initMetamask } = await import("./metamask")
         const { provider, signer, ethereum } = await initMetamask()
-        this.#provider = provider
-        this.#signer = signer
+        this.provider = provider
+        this.signer = signer
         this.#ethereum = ethereum
         if (ethereum.on) {
           ethereum.on("connect", (connectInfo: any) => {
@@ -85,34 +135,28 @@ export class Connector {
           ethereum.on("accountsChanged", (accounts: any) => {
             this.eventEmitter.emit(ConnectorEvents.AccountsChanged, accounts)
           })
-          ethereum.on("chainChanged", (chainId: any) => {
-            this.eventEmitter.emit(ConnectorEvents.ChainChanged, chainId)
+          ethereum.on("chainChanged", () => {
+            // Currently empty, this is handled by the provider
           })
           ethereum.on("message", (message: any) => {
             this.eventEmitter.emit(ConnectorEvents.Message, message)
           })
         }
-        return { signer, provider }
+        break
       }
-      case ProviderTypes.Ledger: {
-        const { signer, provider } = await initLedger()
-        return { signer, provider }
+      case ProviderTypes.WalletConnect: {
+        const { initWalletConnect } = await import("./wallet-connect")
+        const { provider, signer } = await initWalletConnect()
+        this.provider = provider
+        this.signer = signer
+
+        break
       }
+      // case ProviderTypes.Ledger: {
+      //   const { signer, provider } = await initLedger()
+      // }
     }
-  }
-
-  private requireProviderInitialized() {
-    if (!this.#provider) {
-      throw new Error("Provider has not been initialized, call initProvider() first")
-    }
-    return this.#provider
-  }
-
-  private requireEthereumInitialized() {
-    if (!this.#ethereum) {
-      throw new Error("Ethereum provider has not been initialized, call initProvider() first")
-    }
-    return this.#ethereum
+    this.addEventListenersToProvider()
   }
 
   /**
@@ -137,16 +181,4 @@ export class Connector {
   dispose = () => {
     throw new Error("Unimplemented!")
   }
-}
-
-/**
- * Creates a ledger based provider
- * @returns
- */
-const initLedger = async () => {
-  const { LedgerSigner } = await import("@ethersproject/hardware-wallets")
-  const { Web3Provider } = await import("@ethersproject/providers")
-  const signer = new LedgerSigner()
-  const provider = new Web3Provider({})
-  return { signer, provider }
 }
