@@ -149,7 +149,6 @@ export class Connector {
         const { provider, signer } = await initWalletConnect()
         this.provider = provider
         this.signer = signer
-
         break
       }
       // case ProviderTypes.Ledger: {
