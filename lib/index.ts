@@ -1,6 +1,8 @@
-import type { JsonRpcSigner, Network, Web3Provider } from "@ethersproject/providers"
-import type { MetaMaskInpageProvider } from "@metamask/providers"
 import Emittery from "emittery"
+
+import type { JsonRpcSigner, Network, Web3Provider, ExternalProvider } from "@ethersproject/providers"
+import type { MetaMaskInpageProvider } from "@metamask/providers"
+import type WalletConnectProvider from "@walletconnect/web3-provider"
 
 /**
  * Supported provider types.
@@ -66,7 +68,10 @@ export class Connector {
    * The transaction signer, should this be private?
    */
   public signer?: JsonRpcSigner
-  #ethereum?: MetaMaskInpageProvider
+  /**
+   * The external provider
+   */
+  #externalProvider?: MetaMaskInpageProvider | WalletConnectProvider
 
   constructor(private providerType: ProviderTypes) {
     this.eventEmitter = new Emittery<EmittedEvents>()
@@ -79,23 +84,24 @@ export class Connector {
     return this.provider
   }
 
-  private requireEthereumInitialized() {
-    if (!this.#ethereum) {
-      throw new Error("Ethereum provider has not been initialized, call initProvider() first")
+  private requireExternalProviderInitialized() {
+    if (!this.#externalProvider) {
+      throw new Error("Provider has not been initialized, call initProvider() first")
     }
-    return this.#ethereum
+    return this.#externalProvider
   }
 
   private addEventListenersToProvider() {
     const provider = this.requireProviderInitialized()
     // Subscribe to network change
     provider.on("network", (newNetwork: Network) => {
+      console.log("🚀 ~ file: index.ts ~ line 98 ~ Connector ~ provider.on ~ newNetwork", newNetwork)
       this.eventEmitter.emit(ConnectorEvents.NetworkChanged, newNetwork)
     })
     // Subscribe to accounts change
-    provider.on("accountsChanged", (accounts: any) => {
-      console.log("accountsChanged", accounts)
-    })
+    // provider.on("accountsChanged", (accounts: any) => {
+    //   console.log("accountsChanged", accounts)
+    // })
     // Subscribe to chainId change
     provider.on("chainChanged", (chainId: number) => {
       console.log(chainId)
@@ -110,6 +116,30 @@ export class Connector {
     })
   }
 
+  private addEventListenersToExternalProvider() {
+    const externalProvider = this.requireExternalProviderInitialized()
+    externalProvider.on("connect", (connectInfo: any) => {
+      console.log("🚀 ~ file: index.ts ~ line 125 ~ Connector ~ externalProvider.on ~ connectInfo", connectInfo)
+      this.eventEmitter.emit(ConnectorEvents.Connect, connectInfo)
+    })
+    externalProvider.on("disconnect", (error: any) => {
+      console.log("🚀 ~ file: index.ts ~ line 129 ~ Connector ~ externalProvider.on ~ error", error)
+      this.eventEmitter.emit(ConnectorEvents.Disconnect, error)
+    })
+    // Subscribe to accounts change
+    externalProvider.on("accountsChanged", (accounts: any) => {
+      this.eventEmitter.emit(ConnectorEvents.AccountsChanged, accounts)
+      console.log("🚀 ~ file: index.ts ~ line 135 ~ Connector ~ externalProvider.on ~ accounts", accounts)
+    })
+    externalProvider.on("chainChanged", () => {
+      // Currently empty, this is handled by the provider
+    })
+    externalProvider.on("message", (message: any) => {
+      this.eventEmitter.emit(ConnectorEvents.Message, message)
+      console.log("🚀 ~ file: index.ts ~ line 142 ~ Connector ~ externalProvider.on ~ message", message)
+    })
+  }
+
   /**
    * Initialize the specified provider
    *
@@ -117,38 +147,23 @@ export class Connector {
    * @returns
    */
   initProvider = async () => {
-    console.log("initProvider")
     switch (this.providerType) {
       case ProviderTypes.Metamask: {
         const { initMetamask } = await import("./metamask")
-        const { provider, signer, ethereum } = await initMetamask()
+        const { provider, signer, externalProvider } = await initMetamask()
         this.provider = provider
         this.signer = signer
-        this.#ethereum = ethereum
-        if (ethereum.on) {
-          ethereum.on("connect", (connectInfo: any) => {
-            this.eventEmitter.emit(ConnectorEvents.Connect, connectInfo)
-          })
-          ethereum.on("disconnect", (error: any) => {
-            this.eventEmitter.emit(ConnectorEvents.Disconnect, error)
-          })
-          ethereum.on("accountsChanged", (accounts: any) => {
-            this.eventEmitter.emit(ConnectorEvents.AccountsChanged, accounts)
-          })
-          ethereum.on("chainChanged", () => {
-            // Currently empty, this is handled by the provider
-          })
-          ethereum.on("message", (message: any) => {
-            this.eventEmitter.emit(ConnectorEvents.Message, message)
-          })
-        }
+        this.#externalProvider = externalProvider
+        this.addEventListenersToExternalProvider()
         break
       }
       case ProviderTypes.WalletConnect: {
         const { initWalletConnect } = await import("./wallet-connect")
-        const { provider, signer } = await initWalletConnect()
+        const { provider, signer, externalProvider } = await initWalletConnect()
         this.provider = provider
         this.signer = signer
+        this.#externalProvider = externalProvider
+        this.addEventListenersToExternalProvider()
         break
       }
       // case ProviderTypes.Ledger: {
@@ -162,11 +177,16 @@ export class Connector {
    * Requests the provider to access the user's wallet, will throw if the provider has not been initialized.
    */
   activate = async () => {
-    const provider = this.requireProviderInitialized()
     switch (this.providerType) {
       case ProviderTypes.Metamask: {
+        const provider = this.requireProviderInitialized()
         const accounts = await provider.send("eth_requestAccounts", [])
         this.eventEmitter.emit(ConnectorEvents.AccountsChanged, accounts)
+        break
+      }
+      case ProviderTypes.WalletConnect: {
+        const externalProvider = this.requireExternalProviderInitialized() as WalletConnectProvider
+        await externalProvider.enable()
         break
       }
       default:

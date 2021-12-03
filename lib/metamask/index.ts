@@ -1,4 +1,5 @@
 import type { ExternalProvider } from "@ethersproject/providers"
+import type { MetaMaskInpageProvider } from "@metamask/providers"
 
 /**
  * Creates a metamask based provider
@@ -10,8 +11,9 @@ export const initMetamask = async () => {
   if (!ethereum) {
     throw new Error("Ethereum missing")
   }
-  const provider = new Web3Provider(ethereum as unknown as ExternalProvider, "any")
+  const externalProvider = ethereum as unknown as ExternalProvider & MetaMaskInpageProvider
+  const provider = new Web3Provider(externalProvider, "any")
 
   const signer = provider.getSigner()
-  return { provider, signer, ethereum }
+  return { provider, signer, externalProvider }
 }
